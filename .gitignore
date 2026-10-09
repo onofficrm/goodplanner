@@ -1,9 +1,7 @@
-.DS_Store
-Thumbs.db
-._*
-*.log
-error_log
-.ftpquota
-.vscode/
-.idea/
-node_modules/
+# 서버에만 두는 비공개 자료. FTP 계정 정보, DB 비밀번호, 회원·상담 자료는 저장소에 넣지 않습니다.
+data/
+*.sql
+*.sql.gz
+.env
+.env.*
+dbconfig.php
