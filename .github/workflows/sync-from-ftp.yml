@@ -82,10 +82,37 @@ jobs:
           set -euo pipefail
           git config user.name "github-actions[bot]"
           git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
-          git add -A
-          if git diff --cached --quiet; then
+          git config http.postBuffer 524288000
+          mapfile -d '' files < <(git ls-files --others --exclude-standard -z)
+          total="${#files[@]}"
+          echo "Files to commit: ${total}"
+          if [ "$total" -eq 0 ]; then
             echo "::notice::No file changes to commit."
             exit 0
           fi
-          git commit -m "Sync the live site from FTP."
-          git push
+          chunk=200
+          i=0
+          n=0
+          while [ "$i" -lt "$total" ]; do
+            n=$((n + 1))
+            git add -- "${files[@]:i:chunk}"
+            if git diff --cached --quiet; then
+              i=$((i + chunk))
+              continue
+            fi
+            git commit -m "Sync the live site from FTP (${n})."
+            ok=0
+            for attempt in 1 2 3; do
+              if git push; then
+                ok=1
+                break
+              fi
+              echo "Push chunk ${n} attempt ${attempt} failed, retrying..."
+              sleep 15
+            done
+            if [ "$ok" -ne 1 ]; then
+              echo "::error::Failed to push chunk ${n}."
+              exit 1
+            fi
+            i=$((i + chunk))
+          done
